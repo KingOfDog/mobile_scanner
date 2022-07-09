@@ -52,6 +52,7 @@ class MobileScanner(private val activity: Activity, private val textureRegistry:
             "start" -> start(call, result)
             "torch" -> toggleTorch(call, result)
 //            "analyze" -> switchAnalyzeMode(call, result)
+            "pausePreview" -> pausePreview(result)
             "stop" -> stop(result)
             "analyzeImage" -> analyzeImage(call, result)
             else -> result.notImplemented()
@@ -156,6 +157,7 @@ class MobileScanner(private val activity: Activity, private val textureRegistry:
                     return@addListener
                 }
                 cameraProvider!!.unbindAll()
+                textureEntry?.release()
                 textureEntry = textureRegistry.createSurfaceTexture()
                 if (textureEntry == null) {
                     result.error("textureEntry", "textureEntry is null", null)
@@ -249,6 +251,22 @@ class MobileScanner(private val activity: Activity, private val textureRegistry:
                 result.error(TAG, e.message, e)}
             .addOnCompleteListener { result.success(barcodeFound) }
 
+    }
+
+    private fun pausePreview(result: MethodChannel.Result) {
+        if (camera == null) {
+            result.error(TAG, "Called pausePreview() while already paused or stopped!", null)
+            return
+        }
+
+        val owner = activity as LifecycleOwner
+        camera?.cameraInfo?.torchState?.removeObservers(owner)
+        cameraProvider?.unbindAll()
+
+        camera = null
+        cameraProvider = null
+
+        result.success(null)
     }
 
     private fun stop(result: MethodChannel.Result) {
