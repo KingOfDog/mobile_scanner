@@ -237,6 +237,20 @@ class MobileScannerController {
     }
   }
 
+  Future<void> setTorch(TorchState state) async {
+    ensure('setTorch');
+    if (!hasTorch) {
+      debugPrint('Device has no torch/flash.');
+      return;
+    }
+
+    try {
+      await methodChannel.invokeMethod('torch', state.index);
+    } on PlatformException catch (error) {
+      debugPrint('${error.code}: ${error.message}');
+    }
+  }
+
   /// Switches the torch on or off.
   ///
   /// Only works if torch is available.
@@ -251,6 +265,27 @@ class MobileScannerController {
       return;
     }
     facing = facing == CameraFacing.back ? CameraFacing.front : CameraFacing.back;
+    await start();
+  }
+
+  Future<void> setCamera(CameraFacing facing) async {
+    ensure('setCamera');
+    if (facing == this.facing) {
+      debugPrint(
+        'Camera is already facing ${facing.name}. Not switching camera.',
+      );
+      return;
+    }
+
+    try {
+      await methodChannel.invokeMethod('stop');
+    } on PlatformException catch (error) {
+      debugPrint(
+        '${error.code}: camera is stopped! Please start before switching camera.',
+      );
+      return;
+    }
+    this.facing = facing;
     await start();
   }
 
