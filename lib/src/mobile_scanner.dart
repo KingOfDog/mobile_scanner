@@ -40,8 +40,7 @@ class MobileScanner extends StatefulWidget {
   State<MobileScanner> createState() => _MobileScannerState();
 }
 
-class _MobileScannerState extends State<MobileScanner>
-    with WidgetsBindingObserver {
+class _MobileScannerState extends State<MobileScanner> with WidgetsBindingObserver {
   late MobileScannerController controller;
 
   @override
@@ -55,12 +54,12 @@ class _MobileScannerState extends State<MobileScanner>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        if (!controller.isStarting) controller.start();
+        if (!controller.isStarting && !controller.isPaused) controller.start();
         break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
-        controller.stop();
+        if (!controller.isPaused) controller.stop();
         break;
     }
   }

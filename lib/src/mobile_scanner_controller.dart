@@ -117,6 +117,7 @@ class MobileScannerController {
 
   // List<BarcodeFormats>? formats = _defaultBarcodeFormats,
   bool isStarting = false;
+  bool isPaused = false;
 
   /// Start barcode scanning. This will first check if the required permissions
   /// are set.
@@ -126,6 +127,7 @@ class MobileScannerController {
       throw Exception('mobile_scanner: Called start() while already starting.');
     }
     isStarting = true;
+    isPaused = false;
     // setAnalyzeMode(AnalyzeMode.barcode.index);
 
     // Check authorization status
@@ -205,6 +207,7 @@ class MobileScannerController {
   Future<void> pausePreview() async {
     try {
       await methodChannel.invokeMethod('pausePreview');
+      isPaused = true;
     } on PlatformException catch (error) {
       debugPrint('${error.code}: ${error.message}');
     }
