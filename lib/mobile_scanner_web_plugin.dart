@@ -55,6 +55,8 @@ class MobileScannerWebPlugin {
         return _start(call.arguments as Map);
       case 'torch':
         return _torch(call.arguments);
+      case 'pausePreview':
+        return _pausePreview();
       case 'stop':
         return cancel();
       default:
@@ -98,30 +100,27 @@ class MobileScannerWebPlugin {
 
     // Check if stream is running
     if (_localStream != null) {
-      return {
-        'ViewID': viewID,
-        'videoWidth': video.videoWidth,
-        'videoHeight': video.videoHeight
-      };
+      await video.play();
+      _frameInterval?.cancel();
+      _frameInterval = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+        _captureFrame();
+      });
+      return {'ViewID': viewID, 'videoWidth': video.videoWidth, 'videoHeight': video.videoHeight};
     }
 
     try {
       // Check if browser supports multiple camera's and set if supported
-      final Map? capabilities =
-          html.window.navigator.mediaDevices?.getSupportedConstraints();
+      final Map? capabilities = html.window.navigator.mediaDevices?.getSupportedConstraints();
       if (capabilities != null && capabilities['facingMode'] as bool) {
         final constraints = {
           'video': VideoOptions(
-            facingMode:
-                cameraFacing == CameraFacing.front ? 'user' : 'environment',
+            facingMode: cameraFacing == CameraFacing.front ? 'user' : 'environment',
           )
         };
 
-        _localStream =
-            await html.window.navigator.mediaDevices?.getUserMedia(constraints);
+        _localStream = await html.window.navigator.mediaDevices?.getUserMedia(constraints);
       } else {
-        _localStream = await html.window.navigator.mediaDevices
-            ?.getUserMedia({'video': true});
+        _localStream = await html.window.navigator.mediaDevices?.getUserMedia({'video': true});
       }
 
       video.srcObject = _localStream;
@@ -139,8 +138,8 @@ class MobileScannerWebPlugin {
       await video.play();
 
       // Then capture a frame to be analyzed every 200 miliseconds
-      _frameInterval =
-          Timer.periodic(const Duration(milliseconds: 200), (timer) {
+      _frameInterval?.cancel();
+      _frameInterval = Timer.periodic(const Duration(milliseconds: 200), (timer) {
         _captureFrame();
       });
 
@@ -157,8 +156,7 @@ class MobileScannerWebPlugin {
 
   /// Check if any camera's are available
   static Future<bool> cameraAvailable() async {
-    final sources =
-        await html.window.navigator.mediaDevices!.enumerateDevices();
+    final sources = await html.window.navigator.mediaDevices!.enumerateDevices();
     for (final e in sources) {
       // TODO:
       // ignore: avoid_dynamic_calls
@@ -167,6 +165,12 @@ class MobileScannerWebPlugin {
       }
     }
     return false;
+  }
+
+  Future<void> _pausePreview() async {
+    video.pause();
+    _frameInterval?.cancel();
+    _frameInterval = null;
   }
 
   /// Stops the video feed and analyzer
@@ -191,8 +195,7 @@ class MobileScannerWebPlugin {
   /// Captures a frame and analyzes it for QR codes
   Future<dynamic> _captureFrame() async {
     if (_localStream == null) return null;
-    final canvas =
-        html.CanvasElement(width: video.videoWidth, height: video.videoHeight);
+    final canvas = html.CanvasElement(width: video.videoWidth, height: video.videoHeight);
     final ctx = canvas.context2D;
 
     ctx.drawImage(video, 0, 0);
