@@ -57,6 +57,8 @@ public class SwiftMobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHan
             toggleTorch(call, result)
 //        case "analyze":
 //            switchAnalyzeMode(call, result)
+        case "pausePreview":
+            pausePreview(result)
         case "stop":
             stop(result)
         case "analyzeImage":
@@ -163,6 +165,9 @@ public class SwiftMobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHan
             return
         }
         
+        if (textureId != nil) {
+            registry.unregisterTexture(textureId)
+        }
         textureId = registry.register(self)
         captureSession = AVCaptureSession()
         
@@ -302,6 +307,30 @@ public class SwiftMobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHan
             result(barcodeFound)
         }
 
+    }
+
+    func pausePreview(_ result: FlutterResult) {
+        if (device == nil) {
+            result(FlutterError(code: "MobileScanner",
+                                    message: "Called pausePreview() while already stopped!",
+                                    details: nil))
+            return
+        }
+        captureSession.stopRunning()
+        for input in captureSession.inputs {
+            captureSession.removeInput(input)
+        }
+        for output in captureSession.outputs {
+            captureSession.removeOutput(output)
+        }
+        device.removeObserver(self, forKeyPath: #keyPath(AVCaptureDevice.torchMode))
+        
+//        analyzeMode = 0
+        latestBuffer = nil
+        captureSession = nil
+        device = nil
+        
+        result(nil)
     }
     
     func stop(_ result: FlutterResult) {
