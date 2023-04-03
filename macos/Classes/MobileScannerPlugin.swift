@@ -55,6 +55,8 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
             toggleTorch(call, result)
 //        case "analyze":
 //            switchAnalyzeMode(call, result)
+        case "pausePreview":
+            pausePreview(result)
         case "stop":
             stop(result)
         default:
@@ -257,6 +259,32 @@ public class MobileScannerPlugin: NSObject, FlutterPlugin, FlutterStreamHandler,
 //        analyzeMode = call.arguments as! Int
 //        result(nil)
 //    }
+
+    func pausePreview(_ result: FlutterResult) {
+        if (device == nil) {
+            result(FlutterError(code: "MobileScanner",
+                                    message: "Called stop() while already stopped!",
+                                    details: nil))
+            return
+        }
+        captureSession.stopRunning()
+        for input in captureSession.inputs {
+            captureSession.removeInput(input)
+        }
+        for output in captureSession.outputs {
+            captureSession.removeOutput(output)
+        }
+        device.removeObserver(self, forKeyPath: #keyPath(AVCaptureDevice.torchMode))
+        // registry.unregisterTexture(textureId)
+        
+//        analyzeMode = 0
+        latestBuffer = nil
+        captureSession = nil
+        device = nil
+        // textureId = nil
+        
+        result(nil)
+    }
 
     func stop(_ result: FlutterResult) {
         if (device == nil) {
